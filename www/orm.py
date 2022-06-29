@@ -3,17 +3,19 @@
 
 __author__ = 'komorebi'
 
-import logging
+import logging;
+
+logging.basicConfig(level=logging.INFO)
 import aiomysql
 import asyncio
 
 
 def log(sql, args=()):
     # 定义函数打印sql
-    logging.info('SQL: %s' % sql)
+    logging.info('SQL: {}\r\n ARGS:{}'.format(sql, args))
 
 
-async def create_pool(loop, **kw):
+async def create_pool(**kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(  # 建立数据库连接
@@ -22,40 +24,49 @@ async def create_pool(loop, **kw):
         user=kw['user'],
         password=kw['password'],
         db=kw['db'],
-        charset=kw.get('charset', 'utf-8'),
+        charset=kw.get('charset', 'utf8'),  # 注意此处是utf8而不是utf-8
         autocommit=kw.get('autocommit', True),
         maxsize=kw.get('maxsize', 10),  # 连接池最大值
-        minisize=kw.get('minsize', 1),  # 连接池最小值
-        loop=loop  # 传递消息循环对象loop用于异步执行
+        minsize=kw.get('minsize', 1)  # 连接池最小值
     )
 
-    async def select(sql, args, size=None):  # size指最多返回多少条
-        """查询使用"""
-        log(sql, args)
-        global __pool
-        with (await __pool) as conn:  # with语句用于自动处理异常
-            cur = await conn.cursor(aiomysql.DictCursor)  # 使用游标
-            await cur.execute(sql.replace('?', '%s'), args or ())  # sql.replace('?', '%s')将sql中的占位符?替换成%s
-            if size:
-                rs = await cur.fetchmany(size)  # 返回size条数的记录
-            else:
-                rs = await cur.fetchall()  # 返回查询结果所有记录
-            await cur.close()  # 关闭游标
-            logging.info('rows returned: %s' % len(rs))  # 记录返回行数
-            return rs  # 返回查询结果
 
-    async def execute(sql, args):
-        """新增，删除，修改使用"""
-        log(sql, args)
-        with (await __pool) as conn:
-            try:
-                cur = await conn.cursor()  # 游标
-                await cur.execute(sql.replace('?', '%s'), args)  # 执行sql
-                affected = cur.rowcount  # 受影响行数
-                await cur.close()  # 关闭游标
-            except BaseException as e:
-                raise
-            return affected
+async def select(sql, args, size=None):  # size指最多返回多少条
+    """查询使用"""
+    log(sql, args)
+    global __pool
+    with (await __pool) as conn:  # with语句用于自动处理异常
+        cur = await conn.cursor(aiomysql.DictCursor)  # 使用游标
+        await cur.execute(sql.replace('?', '%s'), args or ())  # sql.replace('?', '%s')将sql中的占位符?替换成%s
+        if size:
+            rs = await cur.fetchmany(size)  # 返回size条数的记录
+        else:
+            rs = await cur.fetchall()  # 返回查询结果所有记录
+        await cur.close()  # 关闭游标
+        logging.info('rows returned: %s' % len(rs))  # 记录返回行数
+        return rs  # 返回查询结果
+
+
+async def execute(sql, args):
+    """新增，删除，修改使用"""
+    log(sql, args)
+    with (await __pool) as conn:
+        try:
+            cur = await conn.cursor()  # 游标
+            print(sql.replace('?', '%s'), args)
+            await cur.execute(sql.replace('?', '%s'), args)  # 执行sql
+            affected = cur.rowcount  # 受影响行数
+            await cur.close()  # 关闭游标
+        except BaseException as e:
+            raise
+        return affected
+
+
+def create_args_string(n):
+    result = []
+    for _ in range(n):
+        result.append('?')
+    return ','.join(result)
 
 
 class ModelMetaclass(type):
@@ -89,7 +100,8 @@ class ModelMetaclass(type):
             raise RuntimeError('Primary key not found.')
         for k in mappings.keys():  # 由于前面已经attrs中属于Field的属性的转移到了attrs.__mappings__中，所以这里移除attrs中这些属性
             attrs.pop(k)
-        escaped_fields = list(map(lambda f: '`{}`'.format(f, fields)))
+        escaped_fields = list(map(lambda f: '`{}`'.format(f),
+                                  fields))  # fields = {'a':1,"b":2,'c':3},则escaped_fields=['`a`', '`b`', '`c`']
         attrs['__mappings__'] = mappings
         attrs['__table__'] = tableName
         attrs['__primary_key__'] = primaryKey
@@ -150,7 +162,7 @@ class Model(dict, metaclass=ModelMetaclass):
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
         rows = await execute(self.__insert__, args)
-        if row != 1:
+        if rows != 1:
             logging.warning('failed to insert record; affected rows: %s'.format(rows))
 
 
@@ -175,6 +187,22 @@ class StringField(Field):
 class IntegerField(Field):
 
     def __init__(self, name=None, primary_key=False, default=0):
-        super().__init__(name, ddl, primary_key, default)
+        super().__init__(name, 'bigint', primary_key, default)
 
 
+class BooleanField(Field):
+
+    def __init__(self, name=None, primary_key=False, default=False):
+        super().__init__(name, 'boolean', primary_key, default)
+
+
+class FloatField(Field):
+
+    def __init__(self, name=None, primary_key=False, default=0.00):
+        super().__init__(name, 'float', primary_key, default)
+
+
+class TextField(Field):
+
+    def __init__(self, name=None, primary_key=False, default=''):
+        super().__init__(name, 'text', primary_key, default)
