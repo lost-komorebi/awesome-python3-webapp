@@ -241,7 +241,7 @@ class Model(dict, metaclass=ModelMetaclass):
         name='kongniqiwa',
         image='imageurl'
         )
-        u.save()
+        await u.save()
         """
         args = list(map(self.getValueOrDefault, self.__fields__)
                     )  # 获取除主键外其他列的值并保存到args列表中
@@ -254,16 +254,35 @@ class Model(dict, metaclass=ModelMetaclass):
                 'failed to insert record; affected rows: %s'.format(rows))
 
     async def update(self):
+        """
+        根据主键更新数据
+        u = User(
+        id='001656563353661d7963e6bed754c2d8f6b9ceea6e57301000',
+        email='change@test111.com',
+        passwd='123456',
+        admin=0,
+        name='kongniqiwa',
+        image='imageurl',
+        created_at=1656563353.666812
+        )
+        await u.update()
+        """
         args = list(map(self.getValue, self.__fields__))
         args.append(self.getValue(self.__primary_key__))
-        logging.info(self.__update__, args)
         rows = await execute(self.__update__, args)
         if rows != 1:
             logging.warning(
                 'failed to update by primary key: affected rows: {}'.format(rows))
 
     async def remove(self):
-        args = [self.getValue(self.__primary_key__)]
+        """
+        根据主键删除数据
+        u = User(
+        id='001656572089896e2b3feadd80947c0a1b9f14ab868c4e2000'
+        )
+        await u.remove()
+        """
+        args = [self.getValue(self.__primary_key__)]  # 获取主键
         rows = await execute(self.__delete__, args)
         if rows != 1:
             logging.warning(
@@ -271,6 +290,7 @@ class Model(dict, metaclass=ModelMetaclass):
 
 
 class Field(object):
+    """定义字段类型类"""
 
     def __init__(self, name, column_type, primary_key, default):
         self.name = name
