@@ -173,9 +173,10 @@ def add_route(app, fn):
 
 
 def add_routes(app, module_name):
-    n = module_name.rfind('.')
-    if n == (-1):
+    n = module_name.rfind('.')  # rfind返回字符串最后一次出现的位置
+    if n == (-1):  # -1表示未找到
         mod = __import__(module_name, globals(), locals())
+        print(mod)
     else:
         name = module_name[n + 1:]
         mod = getattr(__import__(
