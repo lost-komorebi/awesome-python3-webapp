@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
-import aiomysql
+import aiomysql  # MySQL的Python异步驱动程序aiomysql
 __author__ = 'komorebi'
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def log(sql, args=()):
