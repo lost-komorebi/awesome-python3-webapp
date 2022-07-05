@@ -72,7 +72,7 @@ async def response_factory(app, handler):
     """把任何类型的返回值最后都统一封装成一个web.Response对象"""
     async def response(request):
         logging.info('Response handler...')
-        r = await handler(request) # 这里的handler其实就是RequestHandler(app, fn)
+        r = await handler(request)  # 这里的handler其实就是RequestHandler(app, fn)
         if isinstance(r, web.StreamResponse):
             return r
         if isinstance(r, bytes):
@@ -100,12 +100,13 @@ async def response_factory(app, handler):
                 __dict__属性：查看对象内部所有属性名和属性值组成的字典
                 """
                 resp.content_type = 'application/json;charset=utf-8'
+                logging.info('resp>>>>', resp)
                 return resp
             else:
                 resp = web.Response(
                     body=app['__templating__'].get_template(template).render(
                         **r).encode('utf-8'))
-                resp.content_type = 'text/html:charset=utf-8'
+                resp.content_type = 'text/html; charset=utf-8'
                 return resp
         if isinstance(r, int) and r >= 100 and r < 600:
             return web.Response(r)
