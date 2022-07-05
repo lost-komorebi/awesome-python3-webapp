@@ -100,7 +100,6 @@ async def response_factory(app, handler):
                 __dict__属性：查看对象内部所有属性名和属性值组成的字典
                 """
                 resp.content_type = 'application/json;charset=utf-8'
-                logging.info('resp>>>>', resp)
                 return resp
             else:
                 resp = web.Response(
