@@ -94,7 +94,14 @@ def has_request_arg(fn):
         return found
 
 
+# RequestHandler目的就是从URL函数中分析其需要接收的参数，从request中获取必要的参数，
+# URL函数不一定是一个coroutine，因此我们用RequestHandler()来封装一个URL处理函数。
+# 调用URL函数，然后把结果转换为web.Response对象，这样，就完全符合aiohttp框架的要求
 class RequestHandler(object):
+    """
+    任何请求都会进入这个类
+    将请求的任何参数都变成self._func(**kw)的形式
+    """
 
     def __init__(self, app, fn):
         self._app = app
@@ -127,14 +134,14 @@ class RequestHandler(object):
                     return web.HTTPBadRequest(
                         'Unsupported Content-Type:{}'.format(request.content_type))
             if request.method == 'GET':
-                qs = request.query_string  # url的参数  比如id=10&name=john
+                qs = request.query_string  # url的参数  比如/?page=2&id=10&name=john
                 if qs:
                     kw = dict()
                     for k, v in parse.parse_qs(
                             qs, True).items():  # parse.parse_qs解析请求URL的字符串参数并以字典形式返回
                         kw[k] = v[0]  # 将请求参数组装成dict
         if kw is None:
-            kw = dict(**request.match_info)  # 从URL获取参数
+            kw = dict(**request.match_info)  # 从URL获取参数，比如'/blog/{id}' 里面的ID
         else:  # 走到这里说明kw不为空
             if not self._has_var_kw_arg and self._name_kw_args:  # 不存在关键词参数但存在命名关键词参数
                 copy = dict()
@@ -201,10 +208,10 @@ def add_routes(app, module_name):
         mod = getattr(__import__(
             module_name[:n], globals(), locals(), [name]), name)
     for attr in dir(mod):
-        if attr.startswith('_'):
+        if attr.startswith('_'): # 跳过_开头的函数名，不是我们定义的
             continue
         fn = getattr(mod, attr)
-        if callable(fn):  # 如果fn可以调用
+        if callable(fn):  # 如果fn可以调用，且有__method__和__route__属性，因为定义的@get和@post函数处理后一定会有这两个属性
             method = getattr(fn, '__method__', None)
             path = getattr(fn, '__route__', None)
             if method and path:
