@@ -13,5 +13,5 @@ configs = {
         'password': 'password',
         'database': 'awesome'
     },
-    'session': {'secret': 'AwEsOmE'}
+    'session': {'secret': 'AwEsOmE', 'max_age': 86400}
 }
