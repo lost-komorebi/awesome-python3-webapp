@@ -8,6 +8,7 @@ from orm import create_pool
 from coroweb import add_routes, add_static
 import logging
 from config import configs
+from handlers import COOKIE_NAME, cookie2user
 
 logging.basicConfig(level=logging.INFO)
 
@@ -102,6 +103,7 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
+                r['__user__'] = request.__user__  # 返回user信息给前端展示
                 resp = web.Response(
                     body=app['__templating__'].get_template(template).render(
                         **r).encode('utf-8'))
@@ -117,6 +119,24 @@ async def response_factory(app, handler):
         resp.content_type = 'text/plain;charset=utf-8'
         return resp.body
     return response
+
+
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info('check user: {} {}'.format(request.method, request.path))
+        request.__user__ = None
+        cookie_str = request.cookies.get(COOKIE_NAME)  # 从cookies获取cookie
+        if cookie_str:
+            user = await cookie2user(cookie_str)  # 根据cookie取得用户信息
+            if user:
+                logging.info('set current user: {}'.format(user.email))
+                request.__user__ = user  # 将user赋值给request.__user__以便返回给前端
+        if request.path.startswith(
+                '/manage/') and (request.__user__ is None or not request.__user__.admin):
+            # 未登陆状态访问需登陆才能操作的页面时重定向到登陆页面
+            return web.HTTPFound('/signin')
+        return (await handler(request))
+    return auth
 
 
 def datetime_filter(t):
@@ -152,7 +172,9 @@ async def init():
     app = web.Application(
         middlewares=[
             logger_factory,
-            response_factory])  # 初始化一个web服务实例
+            response_factory,
+            auth_factory
+        ])  # 初始化一个web服务实例
     init_jinja2(app, filter=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')  # 将handlers.py中所有路由添加到app中
     add_static(app)  # 添加静态资源目录

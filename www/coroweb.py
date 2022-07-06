@@ -114,12 +114,6 @@ class RequestHandler(object):
 
     async def __call__(self, request):
         kw = None
-        print(
-            self._has_request_arg,
-            self._has_var_kw_arg,
-            self._has_named_kw_args,
-            self._name_kw_args,
-            self._required_kw_args)
         # 如果函数参数存在关键字参数**kw或存在命名关键字参数（定义函数时出现在*或者*args后的参数）或者存在requests参数
         if self._has_var_kw_arg or self._has_named_kw_args or self._required_kw_args:
             if request.method == 'POST':  # 请求方式为POST
