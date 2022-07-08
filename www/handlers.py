@@ -13,7 +13,7 @@ import json
 import hashlib
 import logging
 import markdown2
-from apis import APIValueError, APIError, APIPermissionError
+from apis import APIValueError, APIError, APIPermissionError, Page
 from aiohttp import web
 from config import configs
 
@@ -269,3 +269,22 @@ async def api_create_blog(request, *, name, summary, content):
     #     'blogs': blogs
     # }
     return blog
+
+
+@get('/api/blogs')
+async def api_blogs(*, page='1'):
+    page_index = get_page_index(page)
+    num = await Blog.findNumber('count(id)')  # 获取blog总数
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, blogs=())
+    blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
+    return dict(page=p, blogs=blogs)
+
+
+@get('/manage/blogs')
+async def manage_blogs(*, page='1'):
+    return {
+        '__template__': 'manage_blogs.html',
+        'page_index': get_page_index(page)
+    }
