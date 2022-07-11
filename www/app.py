@@ -133,7 +133,7 @@ async def auth_factory(app, handler):
                 request.__user__ = user  # 将user赋值给request.__user__以便返回给前端
         if request.path.startswith(
                 '/manage/') and (request.__user__ is None or not request.__user__.admin):
-            # 未登陆状态访问需登陆才能操作的页面时重定向到登陆页面
+            # 需要管理员账号才可以访问manage相关页面
             return web.HTTPFound('/signin')
         return (await handler(request))
     return auth
