@@ -3,6 +3,7 @@
 
 __author__ = 'komorebi'
 import config_default
+import os
 
 
 class Dict(dict):
@@ -53,12 +54,12 @@ def toDict(d):
 
 
 configs = config_default.configs
-
-try:
-    import config_override
-    configs = merge(configs, config_override.configs)
-except ImportError:
-    pass
+if os.environ['app_env'] == 'pro':
+    try:
+        import config_override
+        configs = merge(configs, config_override.configs)
+    except ImportError:
+        pass
 
 
 configs = toDict(configs)

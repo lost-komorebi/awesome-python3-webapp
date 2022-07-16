@@ -6,14 +6,14 @@ __author__ = 'komorebi'
 import time
 import json
 import os
+import sys
 from aiohttp import web  # 异步框架aiohttp
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader  # 前端模板引擎jinja2
 from orm import create_pool
 from coroweb import add_routes, add_static
 import logging
-from config import configs
-from handlers import COOKIE_NAME, cookie2user
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -186,5 +186,12 @@ async def init():
     return app
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        exit('参数错误')
+    arg = sys.argv[1]
+    # 先设置os.environ后导入，避免其他文件无法获取到os.environ['app_env']
+    os.environ['app_env'] = arg
+    from config import configs
+    from handlers import COOKIE_NAME, cookie2user
     web.run_app(init(), host='127.0.0.1', port=9000)  # 启动
     logging.info('server started at http://127.0.0.1:9000...')
