@@ -288,7 +288,7 @@ async def api_create_blog(request, *, name, summary, content):
         summary=summary.strip(),
         content=content.strip())
     await blog.save()
-    return blog  # todo 应该返回详情页或列表页
+    return blog
 
 
 @post('/api/blogs/{id}')
