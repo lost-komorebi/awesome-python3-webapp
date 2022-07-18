@@ -80,7 +80,7 @@ async def api_register_user(*, email, name, passwd):
                 )
     await user.save()  # 保存入库
     # 设置cookies 并返回
-    r = web.Response()  # TODO 不知道这个r从哪里来的
+    r = web.Response()
     r.set_cookie(
         COOKIE_NAME,  # cookie名称
         user2cookie(  # 用来生成cookie的方法
@@ -305,7 +305,7 @@ async def api_edit_blog(id, request, *, name, summary, content):
     blog.summary = summary.strip()
     blog.content = content.strip()
     await blog.update()
-    return blog  # todo 应该返回详情页或列表页
+    return blog
 
 
 @get('/api/blogs')
